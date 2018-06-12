@@ -7,6 +7,8 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/rs/cors"
 	"google.golang.org/appengine"
+
+	"github.com/surajchhetry/golang-google-app-engine/rest"
 )
 
 type Customer struct {
@@ -36,25 +38,25 @@ func options(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	w.WriteHeader(http.StatusOK)
 }
 func Index(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	OkWithMessage(w, "Loving it ...")
+	rest.OkWithMessage(w, "Loving it !!!...")
 }
 
 func Hello(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	var std = Customer{Name: ps.ByName("name"), Age: 10}
-	OkWithData(w, std)
+	rest.OkWithData(w, std)
 }
 
 func postTest(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	var customer Customer
 	if r.Body == nil {
-		Error(w)
+		rest.Error(w)
 	}
 	json.NewDecoder(r.Body).Decode(&customer)
-	customer.Name = " Hello ! " + customer.Name
-	OkWithData(w, customer)
+	customer.Name = " Hello !! " + customer.Name
+	rest.OkWithData(w, customer)
 
 }
 
 func displayError(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	Error(w)
+	rest.Error(w)
 }
