@@ -3,12 +3,14 @@ package main
 import (
 	"net/http"
 
-	"encoding/json"
 	"github.com/julienschmidt/httprouter"
 	"github.com/rs/cors"
 	"google.golang.org/appengine"
 
 	"github.com/surajchhetry/golang-google-app-engine/rest"
+	"google.golang.org/appengine/datastore"
+	"encoding/json"
+	"google.golang.org/appengine/log"
 )
 
 type Customer struct {
@@ -26,10 +28,10 @@ func main() {
 		MaxAge:           1200,
 	})
 	router.OPTIONS("/", options)
-	router.GET("/", Index)
-	router.POST("/post", postTest)
-	router.GET("/hello/:name", Hello)
-	router.GET("/error", displayError)
+	router.GET("/", index)
+	router.POST("/", postTest)
+	router.GET("/:name", Hello)
+	//router.GET("/error", displayError)
 	http.Handle("/", c.Handler(router))
 	appengine.Main()
 }
@@ -37,13 +39,30 @@ func main() {
 func options(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	w.WriteHeader(http.StatusOK)
 }
-func Index(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	rest.OkWithMessage(w, "Loving it !!!...")
+func index(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	ctx := appengine.NewContext(r)
+	q := datastore.NewQuery("customers").Order("Name")
+	var customers []Customer
+	_, err := q.GetAll(ctx, &customers)
+	if err != nil {
+		//log.Errorf(ctx, "fetching people: %v", err)
+		rest.ErrorWithMessage(w,err.Error())
+		return
+	}
+	rest.OkWithData(w, customers)
+
 }
 
 func Hello(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	var std = Customer{Name: ps.ByName("name"), Age: 10}
-	rest.OkWithData(w, std)
+	q := datastore.NewQuery("customers").Filter("Age >",ps.ByName("name"))
+	ctx := appengine.NewContext(r)
+	var customers []Customer
+	_, err := q.GetAll(ctx, &customers)
+	if err != nil {
+		log.Errorf(ctx, "fetching people: %v", err)
+		return
+	}
+	rest.OkWithData(w, customers)
 }
 
 func postTest(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -52,9 +71,14 @@ func postTest(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		rest.Error(w)
 	}
 	json.NewDecoder(r.Body).Decode(&customer)
-	customer.Name = " Hello !! " + customer.Name
-	rest.OkWithData(w, customer)
-
+	// Store Data
+	ctx := appengine.NewContext(r)
+	_, err := datastore.Put(ctx, datastore.NewIncompleteKey(ctx, "customers", nil), &customer)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	rest.Ok(w)
 }
 
 func displayError(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
