@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 
 	"encoding/json"
@@ -26,33 +25,36 @@ func main() {
 	})
 	router.OPTIONS("/", options)
 	router.GET("/", Index)
-	router.POST("/", postTest)
+	router.POST("/post", postTest)
 	router.GET("/hello/:name", Hello)
+	router.GET("/error", displayError)
 	http.Handle("/", c.Handler(router))
 	appengine.Main()
 }
 
 func options(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	w.WriteHeader(200)
+	w.WriteHeader(http.StatusOK)
 }
 func Index(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	fmt.Fprint(w, "Welcome!\n")
+	OkWithMessage(w, "Loving it ...")
 }
 
 func Hello(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	var std = Customer{Name: ps.ByName("name"), Age: 10}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(std)
+	OkWithData(w, std)
 }
 
 func postTest(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	var customer Customer
 	if r.Body == nil {
-		http.Error(w, " content is blank ", 400)
+		Error(w)
 	}
 	json.NewDecoder(r.Body).Decode(&customer)
-	w.Header().Set("Content-Type", "application/json")
 	customer.Name = " Hello ! " + customer.Name
-	json.NewEncoder(w).Encode(customer)
+	OkWithData(w, customer)
 
+}
+
+func displayError(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	Error(w)
 }
