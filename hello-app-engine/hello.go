@@ -11,6 +11,7 @@ import (
 	"google.golang.org/appengine/datastore"
 	"encoding/json"
 	"google.golang.org/appengine/log"
+	"strconv"
 )
 
 type Customer struct {
@@ -30,7 +31,7 @@ func main() {
 	router.OPTIONS("/", options)
 	router.GET("/", index)
 	router.POST("/", postTest)
-	router.GET("/:name", Hello)
+	router.GET("/hello/:name", Hello)
 	//router.GET("/error", displayError)
 	http.Handle("/", c.Handler(router))
 	appengine.Main()
@@ -54,14 +55,17 @@ func index(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 }
 
 func Hello(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	q := datastore.NewQuery("customers").Filter("Age >",ps.ByName("name"))
+	a, _  := strconv.Atoi( ps.ByName("name") )
+	q := datastore.NewQuery("customers").Filter("Age >",a)
 	ctx := appengine.NewContext(r)
+	log.Infof(ctx," Entered Value :: " +  strconv.Itoa(a))
 	var customers []Customer
 	_, err := q.GetAll(ctx, &customers)
 	if err != nil {
 		log.Errorf(ctx, "fetching people: %v", err)
 		return
 	}
+
 	rest.OkWithData(w, customers)
 }
 
